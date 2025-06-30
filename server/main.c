@@ -42,32 +42,38 @@ int main(void)
 
     printf("Echo server is running on port %d...\n", PORT);
 
-    client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
-    if (client_fd == -1)
-    {
-        perror("accept");
-        close(server_fd);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Client connected: %s\n", inet_ntoa(client_addr.sin_addr));
-
     while (1)
     {
-        ssize_t n = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
-        if (n <= 0)
+        client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
+        if (client_fd == -1)
         {
-            printf("Client disconnected.\n");
-            break;
+            perror("accept");
+            close(server_fd);
+            exit(EXIT_FAILURE);
         }
 
-        buffer[n] = '\0';
-        printf("Received: %s", buffer);
+        printf("Client connected: %s\n", inet_ntoa(client_addr.sin_addr));
 
-        send(client_fd, buffer, n, 0);
+        while (1)
+        {
+            ssize_t n = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
+            if (n <= 0)
+            {
+                printf("Client disconnected.\n");
+                break;
+            }
+
+            buffer[n] = '\0';
+            printf("Received: %s\n", buffer);
+            fflush(stdout);
+
+            send(client_fd, buffer, n, 0);
+        }
+
+        shutdown(server_fd, SHUT_RDWR);
+        close(client_fd);
     }
 
-    close(client_fd);
     close(server_fd);
 
     return 0;
