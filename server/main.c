@@ -41,7 +41,7 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    if (listen(server_fd, 1) == -1)
+    if (listen(server_fd, SOMAXCONN) == -1)
     {
         perror("listen");
         close(server_fd);
