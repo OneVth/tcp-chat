@@ -52,7 +52,7 @@ int main(void)
             break;
 
         buffer[n] = '\0';
-        printf("Echoed: %s", buffer);
+        printf("Echoed: %s\n", buffer);
     }
 
     close(sockfd);
