@@ -36,6 +36,10 @@ int main(void)
         printf("Client: ");
         if (fgets(buffer, 1024, stdin) == NULL)
             break;
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (strcmp(buffer, "EXIT") == 0)
+            break;
 
         if (send(sockfd, buffer, strlen(buffer), 0) <= 0)
             break;
