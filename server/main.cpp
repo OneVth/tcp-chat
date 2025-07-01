@@ -1,9 +1,35 @@
+#include <pthread.h>
 #include <iostream>
 #include <unistd.h>
 #include <arpa/inet.h>
 
 constexpr int BUFFER_SIZE = 1024;
 constexpr int PORT = 25000;
+
+void *threadFunction(void *arg)
+{
+    int client_fd = *(int *)arg;
+    char buffer[BUFFER_SIZE] = {0};
+    ssize_t received = 0;
+
+    std::cout << "New client connected: " << std::endl;
+
+    while (true)
+    {
+        received = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
+        if (received <= 0)
+        {
+            std::cout << "Client disconnected." << std::endl;
+            close(client_fd);
+            return nullptr;
+        }
+
+        buffer[received] = '\0';
+        std::cout << "Received: " << buffer << std::endl;
+
+        send(client_fd, buffer, received, 0);
+    }
+}
 
 int main(void)
 {
@@ -57,24 +83,14 @@ int main(void)
             return EXIT_FAILURE;
         }
 
-        std::cout << "Client connected: " << inet_ntoa(client_addr.sin_addr) << std::endl;
-
-        while (true)
+        pthread_t tid;
+        if(pthread_create(&tid, nullptr, threadFunction, &client_fd) != 0)
         {
-            ssize_t n = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
-            if (n <= 0)
-            {
-                std::cout << "Client disconnected." << std::endl;
-                break;
-            }
-
-            buffer[n] = '\0';
-            std::cout << "Received: " << buffer << std::endl;
-
-            send(client_fd, buffer, n, 0);
+            perror("pthread_create");
+            return EXIT_FAILURE;
         }
 
-        close(client_fd);
+        pthread_detach(tid);
     }
 
     close(server_fd);
