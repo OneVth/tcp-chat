@@ -78,7 +78,6 @@ int main(void)
             send(client_fd, buffer, n, 0);
         }
 
-        shutdown(server_fd, SHUT_RDWR);
         close(client_fd);
     }
 
