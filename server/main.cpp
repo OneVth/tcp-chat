@@ -20,6 +20,17 @@ bool addUser(int sock_fd)
     return true;
 }
 
+void send_chatting_message(char *param)
+{
+    int length = strlen(param);
+    std::list<int>::iterator it;
+
+    pthread_spin_lock(&g_spin);
+    for (it = g_list_client.begin(); it != g_list_client.end(); it++)
+        send(*it, param, sizeof(char) * (length + 1), 0);
+    pthread_spin_unlock(&g_spin);
+}
+
 void *threadFunction(void *arg)
 {
     int client_fd = *(int *)arg;
@@ -45,7 +56,7 @@ void *threadFunction(void *arg)
         buffer[received] = '\0';
         std::cout << "Received: " << buffer << std::endl;
 
-        send(client_fd, buffer, received, 0);
+        send_chatting_message(buffer);
         memset(buffer, 0, BUFFER_SIZE);
     }
 }
@@ -111,7 +122,7 @@ int main(void)
         }
 
         pthread_t tid;
-        if(pthread_create(&tid, nullptr, threadFunction, &client_fd) != 0)
+        if (pthread_create(&tid, nullptr, threadFunction, &client_fd) != 0)
         {
             perror("pthread_create");
             return EXIT_FAILURE;
