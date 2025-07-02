@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
@@ -5,6 +6,26 @@
 
 constexpr int BUFFER_SIZE = 1024;
 constexpr int PORT = 25000;
+
+void *threadReceive(void *arg)
+{
+    int server_fd = *(int *)arg;
+    char buffer[BUFFER_SIZE] = {0};
+
+    while (true)
+    {
+        ssize_t received = recv(server_fd, buffer, BUFFER_SIZE - 1, 0);
+        if (received <= 0)
+        {
+            std::cout << "recv() thread ended" << std::endl;
+            return nullptr;
+        }
+
+        buffer[received] = '\0';
+        std::cout << "-> " << buffer << std::endl;
+        memset(buffer, 0, BUFFER_SIZE);
+    }
+}
 
 int main(void)
 {
@@ -29,10 +50,18 @@ int main(void)
 
     std::cout << "Connected to echo server at " << "127.0.0.1" << ":" << PORT << std::endl;
 
-    char buffer[BUFFER_SIZE] = {0};
+    pthread_t tid;
+    if (pthread_create(&tid, nullptr, threadReceive, &sockfd) != 0)
+    {
+        perror("pthread_create");
+        return EXIT_FAILURE;
+    }
+    pthread_detach(tid);
+
+    std::cout << "Chatting server opened." << std::endl;
     while (true)
     {
-        std::cout << "Client: ";
+        char buffer[BUFFER_SIZE] = {0};
         if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
             break;
         buffer[strcspn(buffer, "\n")] = '\0';
@@ -42,13 +71,6 @@ int main(void)
 
         if (send(sockfd, buffer, strlen(buffer), 0) <= 0)
             break;
-
-        ssize_t n = recv(sockfd, buffer, BUFFER_SIZE - 1, 0);
-        if (n <= 0)
-            break;
-
-        buffer[n] = '\0';
-        std::cout << "Echoed: " << buffer << std::endl;
     }
 
     close(sockfd);
