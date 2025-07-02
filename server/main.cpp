@@ -121,6 +121,7 @@ int main(void)
     }
 
     close(server_fd);
+    pthread_spin_destroy(&g_spin);
 
     return 0;
 }
