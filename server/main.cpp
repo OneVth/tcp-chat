@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <iostream>
 #include <unistd.h>
+#include <cstring>
 #include <arpa/inet.h>
 
 constexpr int BUFFER_SIZE = 1024;
@@ -28,6 +29,7 @@ void *threadFunction(void *arg)
         std::cout << "Received: " << buffer << std::endl;
 
         send(client_fd, buffer, received, 0);
+        memset(buffer, 0, BUFFER_SIZE);
     }
 }
 
