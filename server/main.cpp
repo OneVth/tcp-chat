@@ -3,9 +3,22 @@
 #include <unistd.h>
 #include <cstring>
 #include <arpa/inet.h>
+#include <list>
 
 constexpr int BUFFER_SIZE = 1024;
 constexpr int PORT = 25000;
+
+pthread_spinlock_t g_spin;
+std::list<int> g_list_client;
+
+bool addUser(int sock_fd)
+{
+    pthread_spin_lock(&g_spin);
+    g_list_client.push_back(sock_fd);
+    pthread_spin_unlock(&g_spin);
+
+    return true;
+}
 
 void *threadFunction(void *arg)
 {
@@ -21,6 +34,10 @@ void *threadFunction(void *arg)
         if (received <= 0)
         {
             std::cout << "Client disconnected." << std::endl;
+            pthread_spin_lock(&g_spin);
+            g_list_client.remove(client_fd);
+            pthread_spin_unlock(&g_spin);
+
             close(client_fd);
             return nullptr;
         }
@@ -35,6 +52,8 @@ void *threadFunction(void *arg)
 
 int main(void)
 {
+    pthread_spin_init(&g_spin, PTHREAD_PROCESS_PRIVATE);
+
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1)
     {
@@ -83,6 +102,12 @@ int main(void)
             perror("accept");
             close(server_fd);
             return EXIT_FAILURE;
+        }
+
+        if (addUser(client_fd) == false)
+        {
+            perror("addUser");
+            break;
         }
 
         pthread_t tid;
